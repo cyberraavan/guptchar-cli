@@ -1,0 +1,39 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Metadata 5 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 46 >>
+stream
+BT /F1 12 Tf 20 100 Td (VisibleBodyText) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Metadata /Subtype /XML /Length 108 >>
+stream
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF><dc:creator>SecretXmpCreator</dc:creator></rdf:RDF></x:xmpmeta>
+endstream
+endobj
+6 0 obj
+<< /Author (SecretPdfAuthor) /Creator (SecretPdfCreator) /Producer (SecretPdfProducer) /Title (SecretPdfTitle) /CreationDate (D:20260101100000) >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000074 00000 n 
+0000000131 00000 n 
+0000000218 00000 n 
+0000000314 00000 n 
+0000000503 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R /Info 6 0 R /ID [<5ec7e75ec7e75ec7e75ec7e75ec7e75e> <5ec7e75ec7e75ec7e75ec7e75ec7e75e>] >>
+startxref
+665
+%%EOF

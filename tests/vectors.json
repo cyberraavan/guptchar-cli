@@ -1,0 +1,79 @@
+{
+  "argon2": {
+    "m_kib": 19456,
+    "t": 2,
+    "p": 1,
+    "len": 32
+  },
+  "kdf": [
+    {
+      "passphrase": "correct horse battery staple",
+      "room": "vector-room.01",
+      "key_hex": "3d927ecc8e6e46fa24c55ac7841cbda0e4aa7b58826915e596224af2bfbab6ba"
+    },
+    {
+      "passphrase": "दूसरी चाबी-2",
+      "room": "vector-room.01",
+      "key_hex": "33dc1e349ddef544cb1343c995ae13fd95e4cf262f36cc66619af69bc4f95335"
+    },
+    {
+      "passphrase": "café third",
+      "room": "vector-room.01",
+      "key_hex": "19f169f758ee71b6728bef025d75562a9c70923d1fd86cc39c7c075681db1d4c"
+    }
+  ],
+  "seal": [
+    {
+      "keys_hex": [
+        "3d927ecc8e6e46fa24c55ac7841cbda0e4aa7b58826915e596224af2bfbab6ba"
+      ],
+      "aad": "guptchar/v1/msg",
+      "ivs_hex": [
+        "111111111111111111111111"
+      ],
+      "plaintext_hex": "7b2276223a312c2274223a226d7367222c226e223a2272616176616e222c226d223a2268656c6c6f20f09f918b2064756e697961227d",
+      "envelope_b64": "AREREREREREREREREbOTuqr77BESqFv4Baw/BubralaGFGw2oacLa9KfE6ntXh9o7FyTmAFPna3s42JOTbbTKV/SW7YMbQVuGz5PufSGXrACVb0="
+    },
+    {
+      "keys_hex": [
+        "3d927ecc8e6e46fa24c55ac7841cbda0e4aa7b58826915e596224af2bfbab6ba",
+        "33dc1e349ddef544cb1343c995ae13fd95e4cf262f36cc66619af69bc4f95335"
+      ],
+      "aad": "guptchar/v1/msg",
+      "ivs_hex": [
+        "111111111111111111111111",
+        "222222222222222222222222"
+      ],
+      "plaintext_hex": "7b2276223a312c2274223a226d7367222c226e223a226e656f5f31222c226d223a2274776f206c6179657273227d",
+      "envelope_b64": "ASIiIiIiIiIiIiIiIg+xzs1Ep4AJwCxF+Rn8v8Ge22HxnwSKBKCLCYg4rSDbt0KqOv/P5nk9pOMpQ5nBPJJ8/m/Fo3rlREFdxSuguc5o9RaFZww8NmDaLN0NHgvsh3dN8nLHTA5KDw=="
+    },
+    {
+      "keys_hex": [
+        "3d927ecc8e6e46fa24c55ac7841cbda0e4aa7b58826915e596224af2bfbab6ba",
+        "33dc1e349ddef544cb1343c995ae13fd95e4cf262f36cc66619af69bc4f95335",
+        "19f169f758ee71b6728bef025d75562a9c70923d1fd86cc39c7c075681db1d4c"
+      ],
+      "aad": "guptchar/v1/fhdr",
+      "ivs_hex": [
+        "111111111111111111111111",
+        "222222222222222222222222",
+        "333333333333333333333333"
+      ],
+      "plaintext_hex": "7b2276223a312c2274223a2266696c65222c226e223a227472696e697479222c2266223a226e6f7465732e706466222c2279223a226170706c69636174696f6e2f706466222c2273223a3330303030302c2263223a322c2268223a2261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162616261626162227d",
+      "envelope_b64": "ATMzMzMzMzMzMzMzM8ezEq3NTKggjtZDmVrbwe5lILAUDW1V8fX8brZYyPENJaVegaebo8r4XyGQZPn5T6mgFvhCLeO0B6AE61Nj1rSj8KF/G2TsZ4yxf9A/VjqRkmIEz8oE3mfLflEOWUkzxN7wnA6nOZi/CmI/+hnSc7TxAtzHMwj1huVelnxjEigb4R/q+SNedYywlZ4Hj1FNavgrkhhlkYX8cxirXJvHIe2P6UzoQ+WQt11jIHY0Cw/or8dYejNWR1rXUlR4K4ZARjirXzEKNkPOIxLpxJE39abILSc6EmcfNzwALRuSGORH5i8LGa2T"
+    },
+    {
+      "keys_hex": [
+        "3d927ecc8e6e46fa24c55ac7841cbda0e4aa7b58826915e596224af2bfbab6ba",
+        "33dc1e349ddef544cb1343c995ae13fd95e4cf262f36cc66619af69bc4f95335"
+      ],
+      "aad": "guptchar/v1/fchunk/0123456789abcdef0123456789abcdef/1",
+      "ivs_hex": [
+        "111111111111111111111111",
+        "222222222222222222222222"
+      ],
+      "plaintext_hex": "000102faff",
+      "envelope_b64": "ASIiIiIiIiIiIiIiIg+xzs1Ep4AJwCxF+WLfyxlbeqampMnYkD+y/w9PgjR8VFDz20Smc8NDkkFp66jjkrA="
+    }
+  ]
+}
