@@ -36,6 +36,16 @@ class Payloads(unittest.TestCase):
     def test_clean_file_name(self):
         self.assertEqual(clean_file_name("C:\\a\\b\x07.txt"), "b.txt")
         self.assertEqual(clean_file_name(""), "file")
+        self.assertEqual(clean_file_name("photo\u202egpj.exe"), "photogpj.exe")  # RLO extension spoof
+        self.assertEqual(clean_file_name("a\x9b31mb.txt"), "a31mb.txt")  # C1 control
+        self.assertEqual(clean_file_name("CON.txt"), "_CON.txt")
+        self.assertEqual(clean_file_name("nul"), "_nul")
+        self.assertEqual(clean_file_name("report.pdf. . "), "report.pdf")
+
+    def test_safe_text_blocks_terminal_escapes(self):
+        from guptchar.payload import safe_text
+        evil = "hi\x1b]52;c;ZXZpbA==\x07 there\x9b31m \u202edlrow\nline2"
+        self.assertEqual(safe_text(evil), "hi]52;c;ZXZpbA== there31m dlrow\nline2")
 
 
 if __name__ == "__main__":

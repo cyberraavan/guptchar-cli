@@ -87,8 +87,21 @@ def decode_payload(data: bytes) -> Message | FileHeader:
     raise PayloadError("Bad payload")
 
 
+# C0/C1 control characters and Unicode direction marks/overrides. The overrides
+# can disguise an extension: "photo" + U+202E + "gpj.exe" displays like a .jpg.
+UNSAFE_CHARS = re.compile("[\u0000-\u001f\u007f-\u009f‎‏‪-‮⁦-⁩]")
+WINDOWS_RESERVED = re.compile(r"^(con|prn|aux|nul|com[0-9]|lpt[0-9])$", re.IGNORECASE)
+
+
+def safe_text(text: str) -> str:
+    """Text from other people, made safe to print in a terminal (no escapes, no bidi tricks)."""
+    return UNSAFE_CHARS.sub(lambda m: "\n" if m.group(0) == "\n" else "", text)
+
+
 def clean_file_name(file_name: str) -> str:
-    """Strips path parts and control characters (same rules as the web client)."""
+    """Strips path parts, control and direction characters; safe on every OS (same as web)."""
     base = re.split(r"[\\/]", str(file_name))[-1] or "file"
-    clean = re.sub(r"[\x00-\x1f\x7f]", "", base).strip()
+    clean = UNSAFE_CHARS.sub("", base).strip().rstrip(". ")
+    if WINDOWS_RESERVED.match(clean.split(".")[0]):
+        clean = "_" + clean
     return (clean or "file")[:MAX_FILE_NAME]

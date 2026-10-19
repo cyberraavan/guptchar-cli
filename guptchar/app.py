@@ -18,6 +18,7 @@ from . import __version__
 from . import texts as T
 from .commands import run_line
 from .config import MIN_COLS, MIN_ROWS, SERVER_URL
+from .payload import safe_text
 from .session import Entry, Session
 
 WHITE, RED, ORANGE, DIM, GREY = "#ffffff", "#ff2b3f", "#ff8a1f", "#6e6e6e", "#bdbdbd"
@@ -77,28 +78,30 @@ def boot_line(t: str, label: str, result: str) -> Text:
 
 
 def render_entry(e: Entry) -> Text:
+    # Everything shown may come from other people: strip escapes / bidi tricks first.
+    text, name, file_name = safe_text(e.text), safe_text(e.name), safe_text(e.file_name)
     time_part = Text(f"[{e.time:%H:%M}] ", style=DIM)
     if e.kind == "msg":
         t = time_part
-        t.append(e.name, style=ORANGE if e.own else RED)
+        t.append(name, style=ORANGE if e.own else RED)
         t.append(": ", style=DIM)
-        t.append(e.text, style=GREY if e.own else WHITE)
+        t.append(text, style=GREY if e.own else WHITE)
         return t
     if e.kind == "file":
         t = time_part
-        t.append(e.name, style=ORANGE if e.own else RED)
+        t.append(name, style=ORANGE if e.own else RED)
         t.append(" » file: ", style=DIM)
-        t.append(e.file_name, style=WHITE)
+        t.append(file_name, style=WHITE)
         t.append(f" ({_size(e.size)})", style=DIM)
         return t
     if e.kind == "echo":
-        return Text(f"> {e.text}", style=DIM)
+        return Text(f"> {text}", style=DIM)
     if e.kind == "help":
-        return Text(f"  {e.text}", style=GREY)
+        return Text(f"  {text}", style=GREY)
     styles = {"warn": (ORANGE, "!! "), "error": (RED, "xx "), "system": ("#9a9a9a", "-- ")}
     style, prefix = styles.get(e.kind, styles["system"])
     t = time_part
-    t.append(prefix + e.text, style=style)
+    t.append(prefix + text, style=style)
     return t
 
 
