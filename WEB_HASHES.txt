@@ -1,0 +1,25 @@
+# Guptchar web client — SHA-256 of every served JavaScript file
+# https://guptchar.craavan.in
+
+51cff6492d8622b26ae8860b3b0ef0886fe291416c9cff7fc154032f9bd55058  /js/app/api.js
+ba9d6aded10aab3fdf545dc66723aee47144c7716aeb411befc11cf9acdc0661  /js/app/commands.js
+4144a924dcd6b35434230df5cb6f7ba548ab4a93b99a7436d8dcc4bb36386c00  /js/app/libs.js
+478f950aebf393100f39eacc0cc3e83efbe2192bd327889f37f0dec9e3b812b8  /js/app/main.js
+bfbb80bb77f976982e8f3be3499398de475c3845f57c1ee2cb888c7923a0b071  /js/app/poll-worker.js
+c4f8c0507364da6ce3877f475d254dc5f0797612c8649c54ac7d6ada5b793b11  /js/app/prefs.js
+eef59a13e923c8f94e79621593f01adc9dd5591ebdea1c6122809e87d8b17bf7  /js/app/session.js
+d7b9e34fe62cda80e4a36ce455cc4931504799c1e028ff68029a0ff446809236  /js/app/sound.js
+74e8fae3b0e8561a4e7bd9e0f4a9a504e38f81c63141cb6e6dff7ca86920e0c8  /js/app/texts.js
+f32dd095c70cd788e3823f4579d1a76646ed77786887b0b2b2e4ea951ea90931  /js/app/views/boot.js
+38f5236f9875ab172f2130fcf605a4b92243de60a810405deba4d24df0eab89d  /js/app/views/chat.js
+e3e76fda718402197e3324208cab32f3bcf94be025ad6cc8796bd4504b1ad60f  /js/app/views/chooser.js
+e3bd7447f38f2f9760c67d472c68840813d4487c057dd188e3647f0270a4c8f6  /js/app/views/dom.js
+c5398a8d874aa95705fe5174d4f22bbd812b8ba1b36f4b2341d58a7fe45bad75  /js/app/views/terminal.js
+08e44e1155eb5d4ecc45eab58d29c8ec165e7f39a30db25835aa8b82f76f9054  /js/core/cipher.js
+dce8a4f7e2a5dbf3d3dae23af7852bcbe7f86ccedf2b1b765ea52649a8cc4681  /js/core/encoding.js
+e3effd8fe472e6559977bc5f84031df5b5597c4e02607405e40f8708bf5b41ac  /js/core/kdf.js
+57566753376ac4e826612d7d29cdb6442d262c4683a337c51cc38d0d7f897c55  /js/core/metadata.js
+6a834f7e293fde9b1a5ca7a29a3d05966520e9588d374afccee5e22003c1bbe6  /js/core/payload.js
+dcec617a2e1b700fa132d1583a186cb70611113395e869f2dd6cc82b415d3094  /vendor/hash-wasm/argon2.umd.min.js
+fa62224aa46f5aa78b9449aa8d6d46d914f8a7cce80bc65c635359f7a2f8ffd7  /vendor/jszip/jszip.js
+0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f  /vendor/pdf-lib/pdf-lib.min.js
