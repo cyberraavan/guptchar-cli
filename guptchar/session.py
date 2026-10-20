@@ -189,7 +189,11 @@ class Session:
 
         self.room, self.crypto_keys = room, keys
         self.token, self.cursor = res["token"], res["cursor"]
-        self.poll_ms = res.get("poll_ms") or 3000
+        # never trust the relay's timing blindly: 0 would make us hammer it (audit N4)
+        try:
+            self.poll_ms = min(30000, max(1000, int(res.get("poll_ms") or 3000)))
+        except (TypeError, ValueError):
+            self.poll_ms = 3000
         self.joined, self.offline = True, False
         self.on_status()
         self.log("system", T.connected(room, len(keys)))

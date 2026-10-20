@@ -87,6 +87,22 @@ def glitch_rows(rows: list[str], rate: float, shift: bool = False) -> list[str]:
     return out
 
 
+CAPTCHA_CHARS = set(" █▓▒░#@.:-")
+
+
+def captcha_rows(c: dict) -> tuple[list[str], list[str]]:
+    """Captcha art comes from the relay — keep only the drawing characters, so a
+    hacked relay can't slip terminal escape codes into the CLI (audit N4)."""
+    rows = [str(r) for r in (c.get("art") or [])][:20]
+    rows = ["".join(ch if ch in CAPTCHA_CHARS else " " for ch in r[:80]) for r in rows]
+    tints = [str(t) for t in (c.get("tint") or [])]
+    tint = [
+        "".join("o" if k == "o" else "." for k in (tints[i] if i < len(tints) else ""))[: len(r)].ljust(len(r), ".")
+        for i, r in enumerate(rows)
+    ]
+    return rows, tint
+
+
 def credit_text(text: str, shifted: bool = False) -> Text:
     spaced = " ".join(text.upper())
     return Text((" " if shifted else "") + spaced, style=f"bold {WHITE}" if not shifted else f"bold {RED}")
@@ -273,8 +289,9 @@ class CaptchaScreen(SizedScreen):
             self.run_worker(self.load(T.OFFLINE), exclusive=True)
             return
         self.challenge = c["challenge"]
-        self.query_one("#cap-prompt", Static).update(Text(c.get("prompt", ""), style=f"bold {WHITE}"))
-        art = mask_text(c["art"], c.get("tint") or ["." * len(r) for r in c["art"]])
+        rows, tint = captcha_rows(c)
+        self.query_one("#cap-prompt", Static).update(Text(safe_text(str(c.get("prompt", "")))[:120], style=f"bold {WHITE}"))
+        art = mask_text(rows, tint)
         art.rstrip()
         self.query_one("#cap-art", Static).update(art)
         self.query_one("#cap-input", Input).focus()
