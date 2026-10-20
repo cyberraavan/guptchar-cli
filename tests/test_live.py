@@ -21,7 +21,7 @@ class LiveTest(unittest.IsolatedAsyncioTestCase):
     async def test_captcha_screen_then_join(self):
         app = GuptcharApp(server_url=URL)
         async with app.run_test(size=(120, 40)) as pilot:
-            await pilot.pause(5.6)
+            await pilot.pause(10.6)
             self.assertIsInstance(app.screen, CaptchaScreen)
             for _ in range(20):
                 if app.screen.challenge:

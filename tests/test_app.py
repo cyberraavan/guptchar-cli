@@ -17,8 +17,10 @@ class AppTest(unittest.IsolatedAsyncioTestCase):
         app = GuptcharApp(server_url="http://127.0.0.1:9", require_captcha=False)  # nothing listens there
         async with app.run_test(size=(120, 40)) as pilot:
             self.assertIsInstance(app.screen, BootScreen)
-            await pilot.pause(4.0)
-            self.assertIsInstance(app.screen, BootScreen, "boot must last 5 seconds")
+            await pilot.pause(9.0)
+            self.assertIsInstance(app.screen, BootScreen, "boot must last 10 seconds")
+            credit = str(app.screen.query_one("#boot-credit", Static).render())
+            self.assertGreaterEqual(len(credit.strip()), 30, "credit line 'Made by Cyber Raavan' is shown")
             await pilot.pause(1.6)
             self.assertIsInstance(app.screen, ChatScreen)
             self.assertIn(T.IP_WARNING, log_text(app))

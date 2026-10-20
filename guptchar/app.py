@@ -34,12 +34,14 @@ BOOT_LINES = (
     ("0.73", "cookies", "none"),
 )
 GLITCH = "█▓▒░"
+CREDIT = "Made by Cyber Raavan"
 
 CSS = f"""
 Screen {{ background: #000000; color: #e8e8e8; }}
 #boot-log {{ height: auto; padding: 1 2 0 2; }}
 #boot-mask {{ width: 100%; height: 1fr; content-align: center middle; text-align: center; }}
-#boot-quote {{ height: 1; text-align: center; color: {RED}; margin-bottom: 1; }}
+#boot-quote {{ height: 1; text-align: center; color: {RED}; }}
+#boot-credit {{ height: 1; text-align: center; margin-bottom: 1; }}
 #status {{ height: 1; padding: 0 1; background: #0b0b0b; color: {DIM}; }}
 #log {{ height: 1fr; padding: 0 1; scrollbar-size-vertical: 1; }}
 #log Static {{ width: 100%; }}
@@ -72,6 +74,22 @@ def mask_text(rows: list[str], tints: list[str]) -> Text:
             text.append(ch, style=f"bold {ORANGE}" if code == "o" else "#d9d9d9")
         text.append("\n")
     return text
+
+
+def glitch_rows(rows: list[str], rate: float, shift: bool = False) -> list[str]:
+    """Block-noise on a share of the characters; with `shift`, a band of rows slides sideways."""
+    out = ["".join(random.choice(GLITCH) if c != " " and random.random() < rate else c for c in row) for row in rows]
+    if shift and len(out) > 4:
+        top = random.randrange(len(out) - 3)
+        by = random.randint(1, 3)
+        for y in range(top, min(len(out), top + random.randint(2, 6))):
+            out[y] = (" " * by + out[y])[: len(rows[y])] if random.random() < 0.5 else out[y][by:] + " " * by
+    return out
+
+
+def credit_text(text: str, shifted: bool = False) -> Text:
+    spaced = " ".join(text.upper())
+    return Text((" " if shifted else "") + spaced, style=f"bold {WHITE}" if not shifted else f"bold {RED}")
 
 
 def boot_line(t: str, label: str, result: str) -> Text:
@@ -134,7 +152,7 @@ class TooSmallScreen(SizedScreen):
 
 
 class BootScreen(SizedScreen):
-    """Exactly 5 seconds, cannot be skipped (SPEC section 10)."""
+    """Exactly 10 seconds, cannot be skipped (SPEC section 10; DECISIONS D33)."""
 
     BINDINGS = []
 
@@ -142,6 +160,7 @@ class BootScreen(SizedScreen):
         yield Static(id="boot-log")
         yield Static(id="boot-mask")
         yield Static(id="boot-quote")
+        yield Static(id="boot-credit")
 
     def on_mount(self) -> None:
         self.run_worker(self.play(), exclusive=True)
@@ -152,7 +171,9 @@ class BootScreen(SizedScreen):
         async def until(ms: float) -> None:
             await asyncio.sleep(max(0.0, start + ms / 1000 - time.monotonic()))
 
-        log, mask, quote = (self.query_one(f"#boot-{n}", Static) for n in ("log", "mask", "quote"))
+        log, mask, quote, credit = (
+            self.query_one(f"#boot-{n}", Static) for n in ("log", "mask", "quote", "credit")
+        )
         lines = Text()
         for i, line in enumerate(BOOT_LINES):
             if i:
@@ -161,31 +182,60 @@ class BootScreen(SizedScreen):
             log.update(lines)
             await until((i + 1) * 150)
 
+        # mask reveal: 1.0 - 4.0 s
         await until(1000)
         width, height = self.app.size
-        fits = [c for c in MASK_WIDTHS if c <= width - 4 and round(c * 0.4) <= height - 3]
+        fits = [c for c in MASK_WIDTHS if c <= width - 4 and round(c * 0.4) <= height - 4]
         art = load_mask(fits[-1]) if fits else None
-        if art and round(art["cols"] * 0.4) > height - 10:
+        if art and round(art["cols"] * 0.4) > height - 11:
             log.display = False  # small terminal: give the mask the room
 
         if art:
             rows = art["rows"]
             for y in range(len(rows)):
-                shown = list(rows[: y + 1])
-                shown[y] = "".join(
-                    random.choice(GLITCH) if c != " " and random.random() < 0.35 else c for c in shown[y]
-                )
-                mask.update(mask_text(shown, art["tint"]))
-                await until(1000 + (y + 1) * 2600 / len(rows))
-            mask.update(mask_text(rows, art["tint"]))
+                mask.update(mask_text(glitch_rows(rows[: y + 1], 0.35), art["tint"]))
+                await until(1000 + (y + 1) * 3000 / len(rows))
 
-        await until(3700)
+        # continuous glitch on the full mask: 4.0 - 9.7 s
+        async def glitch_loop() -> None:
+            frame = 0
+            while True:
+                frame += 1
+                burst = frame % 9 == 0 or random.random() < 0.08
+                mask.update(mask_text(glitch_rows(art["rows"], 0.22 if burst else 0.035, shift=burst), art["tint"]))
+                await asyncio.sleep(0.09)
+
+        loops = [asyncio.create_task(glitch_loop())] if art else []
+
+        # quote typed: 4.2 - 5.0 s
+        await until(4200)
         text = "> " + random.choice(QUOTES)
         for i in range(len(text)):
             quote.update(text[: i + 1])
-            await until(3700 + (i + 1) * 800 / len(text))
+            await until(4200 + (i + 1) * 800 / len(text))
 
-        await until(5000)
+        # "Made by Cyber Raavan" typed with glitch: 5.3 - 6.5 s, then flickers
+        await until(5300)
+        for i in range(len(CREDIT)):
+            credit.update(credit_text(CREDIT[:i] + random.choice(GLITCH)))
+            await until(5300 + (i + 1) * 1200 / len(CREDIT))
+
+        async def credit_loop() -> None:
+            while True:
+                if random.random() < 0.3:
+                    chars = list(CREDIT)
+                    for _ in range(random.randint(1, 3)):
+                        chars[random.randrange(len(chars))] = random.choice(GLITCH)
+                    credit.update(credit_text("".join(chars), shifted=True))
+                    await asyncio.sleep(0.07)
+                credit.update(credit_text(CREDIT))
+                await asyncio.sleep(0.16)
+
+        loops.append(asyncio.create_task(credit_loop()))
+
+        await until(10000)
+        for task in loops:
+            task.cancel()
         while getattr(self.app, "_too_small", False):
             await asyncio.sleep(0.2)
         needs_captcha = getattr(self.app, "require_captcha", True)
