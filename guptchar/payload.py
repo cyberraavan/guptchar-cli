@@ -5,11 +5,13 @@ from __future__ import annotations
 import json
 import math
 import re
+import secrets
 from dataclasses import dataclass
 
 ROOM_RE = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,16}$")
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
+ID_RE = re.compile(r"^[0-9a-f]{32}$")
 MAX_TEXT = 1000
 MAX_FILE_BYTES = 10 * 1024 * 1024
 CHUNK_BYTES = 256 * 1024
@@ -23,12 +25,14 @@ class PayloadError(ValueError):
 
 @dataclass
 class Message:
+    id: str
     name: str
     text: str
 
 
 @dataclass
 class FileHeader:
+    id: str
     name: str
     file_name: str
     mime: str
@@ -41,19 +45,25 @@ def _dumps(obj: dict) -> bytes:
     return json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
-def encode_message(name: str, text: str) -> bytes:
+def new_id() -> str:
+    """Random 128-bit message id: lets clients drop replayed envelopes (audit M2)."""
+    return secrets.token_hex(16)
+
+
+def encode_message(name: str, text: str, msg_id: str | None = None) -> bytes:
     if not NAME_RE.match(name):
         raise PayloadError("Bad name")
     if not text or len(text) > MAX_TEXT:
         raise PayloadError("Bad text")
-    return _dumps({"v": 1, "t": "msg", "n": name, "m": text})
+    return _dumps({"v": 1, "t": "msg", "i": msg_id or new_id(), "n": name, "m": text})
 
 
-def encode_file_header(name: str, file_name: str, mime: str, size: int, chunks: int, sha256: str) -> bytes:
+def encode_file_header(name: str, file_name: str, mime: str, size: int, chunks: int, sha256: str,
+                       msg_id: str | None = None) -> bytes:
     if not NAME_RE.match(name):
         raise PayloadError("Bad name")
     return _dumps({
-        "v": 1, "t": "file", "n": name, "f": clean_file_name(file_name),
+        "v": 1, "t": "file", "i": msg_id or new_id(), "n": name, "f": clean_file_name(file_name),
         "y": (mime or "application/octet-stream")[:MAX_MIME], "s": size, "c": chunks, "h": sha256,
     })
 
@@ -63,14 +73,15 @@ def decode_payload(data: bytes) -> Message | FileHeader:
         p = json.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, ValueError) as exc:
         raise PayloadError("Bad payload") from exc
-    if not isinstance(p, dict) or p.get("v") != 1 or not isinstance(p.get("n"), str) or not NAME_RE.match(p["n"]):
+    if (not isinstance(p, dict) or p.get("v") != 1 or not isinstance(p.get("n"), str) or not NAME_RE.match(p["n"])
+            or not isinstance(p.get("i"), str) or not ID_RE.match(p["i"])):
         raise PayloadError("Bad payload")
 
     if p.get("t") == "msg":
         text = p.get("m")
         if not isinstance(text, str) or not text or len(text) > MAX_TEXT:
             raise PayloadError("Bad payload")
-        return Message(p["n"], text)
+        return Message(p["i"], p["n"], text)
 
     if p.get("t") == "file":
         size, chunks = p.get("s"), p.get("c")
@@ -82,7 +93,7 @@ def decode_payload(data: bytes) -> Message | FileHeader:
         )
         if not ok:
             raise PayloadError("Bad payload")
-        return FileHeader(p["n"], clean_file_name(p["f"]), p["y"][:MAX_MIME], size, chunks, p["h"])
+        return FileHeader(p["i"], p["n"], clean_file_name(p["f"]), p["y"][:MAX_MIME], size, chunks, p["h"])
 
     raise PayloadError("Bad payload")
 
@@ -96,6 +107,18 @@ WINDOWS_RESERVED = re.compile(r"^(con|prn|aux|nul|com[0-9]|lpt[0-9])$", re.IGNOR
 def safe_text(text: str) -> str:
     """Text from other people, made safe to print in a terminal (no escapes, no bidi tricks)."""
     return UNSAFE_CHARS.sub(lambda m: "\n" if m.group(0) == "\n" else "", text)
+
+
+EXECUTABLE = re.compile(
+    r"\.(exe|msi|bat|cmd|com|scr|pif|ps1|vbs|vbe|js|jse|wsf|hta|lnk|jar|apk|app|dmg|pkg|deb|rpm|sh|run|bin"
+    r"|reg|dll|cpl|msc|iso|img)$",
+    re.IGNORECASE,
+)
+
+
+def is_executable(file_name: str) -> bool:
+    """True for file types that run code when opened (audit L1 — warn the user)."""
+    return bool(EXECUTABLE.search(file_name))
 
 
 def clean_file_name(file_name: str) -> str:

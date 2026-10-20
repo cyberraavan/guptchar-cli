@@ -28,13 +28,17 @@ from .crypto import (
     AAD_FILE_HEADER, AAD_MESSAGE, MAX_LAYERS, CryptoError,
     aad_chunk, derive_key, open_envelope, seal,
 )
+from .keystrength import MIN_BITS, estimate_bits
 from .metadata import strip_metadata
 from .payload import (
     CHUNK_BYTES, MAX_FILE_BYTES, MAX_TEXT, NAME_RE, ROOM_RE,
     FileHeader, Message, PayloadError, decode_payload, encode_file_header, encode_message,
+    is_executable, new_id,
 )
 
 DOWNLOAD_DIR = Path.home() / "Downloads" / "guptchar"
+AUTO_SAVE_MAX_FILES = 50          # per run (audit L1)
+AUTO_SAVE_MAX_BYTES = 100 * 1024 * 1024
 _ids = itertools.count(1)
 
 
@@ -50,6 +54,7 @@ class Entry:
     own: bool = False
     file_name: str = ""
     size: int = 0
+    executable: bool = False
     id: int = field(default_factory=lambda: next(_ids))
     time: datetime = field(default_factory=datetime.now)
 
@@ -108,6 +113,9 @@ class Session:
         self._poll_task: asyncio.Task | None = None
         self._own_seqs: set[int] = set()
         self._own_files: set[str] = set()
+        self._seen_ids: set[str] = set()  # replayed envelopes are dropped (audit M2)
+        self._saved_files = 0
+        self._saved_bytes = 0
 
     def log(self, kind: str, text: str) -> Entry:
         entry = Entry(kind, text)
@@ -129,6 +137,8 @@ class Session:
             raise UserError(T.MAX_LAYERS)
         if not secret:
             raise UserError(T.EMPTY_KEY)
+        if estimate_bits(secret) < MIN_BITS:
+            raise UserError(T.WEAK_KEY)
         clean = (label or "").strip()[:32] or f"Key {len(self.keys) + 1}"
         self.keys.append({"label": clean, "secret": secret})
         self.on_status()
@@ -203,7 +213,15 @@ class Session:
         self.crypto_keys = None
         self._own_seqs.clear()
         self._own_files.clear()
+        self._seen_ids.clear()
         self.on_status()
+
+    def _fresh(self, msg_id: str) -> bool:
+        """True the first time an id is seen; False for a replay."""
+        if msg_id in self._seen_ids:
+            return False
+        self._seen_ids.add(msg_id)
+        return True
 
     async def close(self) -> None:
         if self.joined:
@@ -244,6 +262,8 @@ class Session:
     async def _on_poll_error(self, exc: ApiError) -> None:
         if exc.code == "token_expired":
             await self._rejoin()
+        elif exc.code == "rate_limited":
+            return  # polled twice within a second
         elif not self.offline:
             self.offline = True
             self.log("error", T.OFFLINE)
@@ -288,7 +308,7 @@ class Session:
                 payload = decode_payload(open_envelope(self.crypto_keys, _unb64(event["envelope"]), AAD_MESSAGE))
             except (CryptoError, PayloadError, ValueError):
                 return  # wrong key / not for us: ignored silently
-            if isinstance(payload, Message):
+            if isinstance(payload, Message) and self._fresh(payload.id):
                 self.on_entry(Entry("msg", payload.text, name=payload.name))
                 self.beep()
             return
@@ -301,9 +321,11 @@ class Session:
                 header = decode_payload(open_envelope(self.crypto_keys, _unb64(event["header"]), AAD_FILE_HEADER))
             except (CryptoError, PayloadError, ValueError):
                 return
-            if not isinstance(header, FileHeader) or header.size != event["size"] or header.chunks != event["chunks"]:
+            if (not isinstance(header, FileHeader) or header.size != event["size"]
+                    or header.chunks != event["chunks"] or not self._fresh(header.id)):
                 return
-            entry = Entry("file", "", name=header.name, file_name=header.file_name, size=header.size)
+            entry = Entry("file", "", name=header.name, file_name=header.file_name, size=header.size,
+                          executable=is_executable(header.file_name))
             self.on_entry(entry)
             self.beep()
             # CLI auto-saves every received file (SPEC section 9).
@@ -318,7 +340,9 @@ class Session:
             return
         if len(text) > MAX_TEXT:
             raise UserError(T.TOO_LARGE)
-        envelope = _b64(seal(self.crypto_keys, encode_message(self.name, text), AAD_MESSAGE))
+        msg_id = new_id()
+        self._seen_ids.add(msg_id)  # a replay of our own message is dropped too
+        envelope = _b64(seal(self.crypto_keys, encode_message(self.name, text, msg_id), AAD_MESSAGE))
         try:
             async with self._lock:
                 res = await self._with_token("send", lambda: {"room": self.room, "token": self.token, "envelope": envelope})
@@ -352,7 +376,10 @@ class Session:
         keys = self.crypto_keys
         chunks = math.ceil(len(data) / CHUNK_BYTES)
         mime = mimetypes.guess_type(file.name)[0] or "application/octet-stream"
-        header_plain = encode_file_header(self.name, file.name, mime, len(data), chunks, hashlib.sha256(data).hexdigest())
+        file_msg_id = new_id()
+        self._seen_ids.add(file_msg_id)
+        header_plain = encode_file_header(self.name, file.name, mime, len(data), chunks,
+                                          hashlib.sha256(data).hexdigest(), file_msg_id)
         file_name = decode_payload(header_plain).file_name
         header = _b64(seal(keys, header_plain, AAD_FILE_HEADER))
         progress = Entry("system", T.sending(file_name, 0, chunks))
@@ -400,6 +427,12 @@ class Session:
         return data
 
     async def _auto_save(self, file_id: str, header: FileHeader) -> None:
+        if (self._saved_files >= AUTO_SAVE_MAX_FILES
+                or self._saved_bytes + header.size > AUTO_SAVE_MAX_BYTES):
+            self.log("warn", T.AUTO_SAVE_LIMIT)
+            return
+        self._saved_files += 1
+        self._saved_bytes += header.size
         try:
             data = await self.download(file_id, header)
             self.download_dir.mkdir(parents=True, exist_ok=True)

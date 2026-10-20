@@ -93,6 +93,8 @@ def render_entry(e: Entry) -> Text:
         t.append(" » file: ", style=DIM)
         t.append(file_name, style=WHITE)
         t.append(f" ({_size(e.size)})", style=DIM)
+        if e.executable:
+            t.append(f"  !! {T.EXECUTABLE}", style=ORANGE)
         return t
     if e.kind == "echo":
         return Text(f"> {text}", style=DIM)

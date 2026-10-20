@@ -11,6 +11,14 @@ FILE_EXPIRED = "File expired — files live for 60 seconds."
 OFFLINE = "Can't reach the relay. Retrying…"
 MISSED = "Some messages expired while you were away."
 UNSUPPORTED_CONFIRM = "Metadata can't be removed from this file type. Send anyway?"
+RELAY_BUSY = "Relay is busy right now. Try again in a minute."
+WEAK_KEY = "Key too weak — use 4+ random words or 12+ mixed characters (letters, numbers, symbols)."
+EXECUTABLE = "Executable file — only open it if you trust the sender."
+AUTO_SAVE_LIMIT = "Auto-save limit reached (50 files / 100 MB this run) — file skipped."
+
+
+def strength(label: str) -> str:
+    return f"Key strength: {label}"
 
 KEY_WARNING = "Use a long, random key — anyone who guesses it can read everything."
 IP_WARNING = "The server can see your IP address. Use Tor Browser or a VPN to hide it."
@@ -90,6 +98,7 @@ API_ERRORS = {
     "invalid_room": INVALID_ROOM,
     "too_large": TOO_LARGE,
     "storage_full": STORAGE_FULL,
+    "relay_busy": RELAY_BUSY,
     "file_gone": FILE_EXPIRED,
     "network": OFFLINE,
 }

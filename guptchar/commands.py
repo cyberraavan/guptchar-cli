@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from . import texts as T
+from .keystrength import estimate_bits, strength_label
 from .session import Session, UserError
 
 
@@ -79,6 +80,7 @@ async def _key(args: list[str], ui: Ui) -> None:
         secret = await ui.ask(T.KEY_PROMPT, password=True)
         if secret is None:
             return
+        ui.log("system", T.strength(strength_label(estimate_bits(secret))))
         added = session.add_key(label, secret)
         ui.log("system", T.key_added(added, len(session.keys)))
     elif sub == "list":

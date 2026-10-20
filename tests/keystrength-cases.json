@@ -1,0 +1,21 @@
+[
+  ["", "too weak"],
+  ["123456", "too weak"],
+  ["password", "too weak"],
+  ["Pass word", "too weak"],
+  ["aaaaaaaaaaaaaaaa", "too weak"],
+  ["abcdefgh", "too weak"],
+  ["987654", "too weak"],
+  ["dragonfly", "too weak"],
+  ["xkqzvbnwrtyp", "too weak"],
+  ["123456789012", "too weak"],
+  ["correct horse battery", "too weak"],
+  ["correct horse battery staple", "fair"],
+  ["correct-horse-battery-staple-river", "fair"],
+  ["correct horse battery staple river lamp tiger", "good"],
+  ["Tr0ub4dor&3", "good"],
+  ["k9#Lm2$pQ7!x", "good"],
+  ["G7v!q2#Lx9@Wm4$Rz8&Kd", "strong"],
+  ["मेरी गुप्त चाबी 42", "strong"],
+  ["2468013579135", "fair"]
+]
