@@ -11,12 +11,12 @@ from textual.widgets import Input, Static
 from guptchar.app import CaptchaScreen, ChatScreen, GuptcharApp
 from guptchar.session import Session
 
-from .captcha_solver import solve
+from .captcha_peek import APP_KEY, answer
 
 URL = os.environ.get("GUPTCHAR_E2E_URL")
 
 
-@unittest.skipUnless(URL, "set GUPTCHAR_E2E_URL to run against a live relay")
+@unittest.skipUnless(URL and APP_KEY, "set GUPTCHAR_E2E_URL and GUPTCHAR_APP_KEY to run against a live relay")
 class LiveTest(unittest.IsolatedAsyncioTestCase):
     async def test_captcha_screen_then_join(self):
         app = GuptcharApp(server_url=URL)
@@ -32,8 +32,8 @@ class LiveTest(unittest.IsolatedAsyncioTestCase):
             await pilot.pause(1.0)
             self.assertIn("Wrong answer", str(app.screen.query_one("#cap-status", Static).render()))
 
-            art = str(app.screen.query_one("#cap-art", Static).render()).split("\n")
-            await pilot.press(*solve(art), "enter")
+            self.assertTrue(str(app.screen.query_one("#cap-prompt", Static).render()).strip())
+            await pilot.press(*answer(app.screen.challenge), "enter")
             await pilot.pause(1.0)
             self.assertIsInstance(app.screen, ChatScreen)
 
@@ -60,7 +60,7 @@ class LiveTest(unittest.IsolatedAsyncioTestCase):
         async def captcha():
             asked.append(1)
             c = await s.new_captcha()
-            await s.solve_captcha(c["challenge"], solve(c["art"]))
+            await s.solve_captcha(c["challenge"], answer(c["challenge"]))
 
         s = Session(URL, on_entry=lambda e: None, captcha=captcha)
         s.set_name("bot_test")

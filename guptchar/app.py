@@ -254,6 +254,7 @@ class CaptchaScreen(SizedScreen):
     def compose(self) -> ComposeResult:
         yield Static(Text(" GUPTCHAR ", style=f"bold {WHITE} on {RED}"), id="cap-brand")
         yield Static(T.CAPTCHA_TITLE, id="cap-title")
+        yield Static(id="cap-prompt")
         yield Static(id="cap-art")
         yield Static(id="cap-status")
         yield Input(id="cap-input", placeholder="answer", max_length=8)
@@ -272,7 +273,10 @@ class CaptchaScreen(SizedScreen):
             self.run_worker(self.load(T.OFFLINE), exclusive=True)
             return
         self.challenge = c["challenge"]
-        self.query_one("#cap-art", Static).update(Text("\n".join(c["art"]), style=WHITE))
+        self.query_one("#cap-prompt", Static).update(Text(c.get("prompt", ""), style=f"bold {WHITE}"))
+        art = mask_text(c["art"], c.get("tint") or ["." * len(r) for r in c["art"]])
+        art.rstrip()
+        self.query_one("#cap-art", Static).update(art)
         self.query_one("#cap-input", Input).focus()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
