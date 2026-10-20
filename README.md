@@ -24,9 +24,11 @@ git clone https://github.com/cyberraavan/guptchar-cli.git
 cd guptchar-cli
 python3 -m venv .venv
 . .venv/bin/activate
-pip install -r requirements.txt
+pip install --require-hashes -r requirements-lock.txt   # every file checked by SHA-256
 python guptchar.py          # or: python -m guptchar
 ```
+
+`requirements-lock.txt` pins every dependency to an exact version **and** its SHA-256 hash, so a tampered package cannot be installed. `requirements.txt` (top-level pins only) is there for platforms the lock can't cover, like Termux.
 
 Debian/Ubuntu may need `sudo apt install python3-venv` first.
 
@@ -50,7 +52,7 @@ Received files go to `~/Downloads/guptchar/` — run `termux-setup-storage` if y
 git clone https://github.com/cyberraavan/guptchar-cli.git
 cd guptchar-cli
 python3 -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
+pip install --require-hashes -r requirements-lock.txt
 python guptchar.py
 ```
 
@@ -63,7 +65,7 @@ git clone https://github.com/cyberraavan/guptchar-cli.git
 cd guptchar-cli
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install --require-hashes -r requirements-lock.txt
 python guptchar.py
 ```
 
