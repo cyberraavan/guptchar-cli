@@ -91,7 +91,10 @@ def unique_path(folder: Path, file_name: str) -> Path:
 class Session:
     def __init__(self, server_url: str, *, on_entry, on_update=None, on_status=None,
                  confirm: Callable[[str], Awaitable[bool]] | None = None, beep=None,
+                 captcha: Callable[[], Awaitable[None]] | None = None,
                  download_dir: Path = DOWNLOAD_DIR):
+        self.captcha = captcha
+        self.pass_token: str | None = None  # captcha pass (DECISIONS D32), memory only
         self.api = Api(server_url)
         self.on_entry = on_entry
         self.on_update = on_update or (lambda e: None)
@@ -180,7 +183,7 @@ class Session:
         keys = [await asyncio.to_thread(derive_key, k["secret"], room) for k in self.keys]
         try:
             async with self._lock:
-                res = await self.api.call("join", {"room": room})
+                res = await self._join_call(room)
         except Exception as exc:
             raise _user_error(exc) from None
 
@@ -191,6 +194,26 @@ class Session:
         self.on_status()
         self.log("system", T.connected(room, len(keys)))
         self._poll_task = asyncio.create_task(self._poll_loop())
+
+    # ------------------------------------------------------------ captcha (D32)
+
+    async def new_captcha(self) -> dict:
+        return await self.api.call("captcha", {})
+
+    async def solve_captcha(self, challenge: str, answer: str) -> None:
+        res = await self.api.call("captcha/verify", {"challenge": challenge, "answer": answer})
+        self.pass_token = res["pass"]
+
+    async def _join_call(self, room: str) -> dict:
+        """join with the captcha pass; if missing/used up, ask for a captcha once and retry."""
+        try:
+            return await self.api.call("join", {"room": room, "pass": self.pass_token or ""})
+        except ApiError as exc:
+            if exc.code != "captcha_required" or self.captcha is None:
+                raise
+            self.pass_token = None
+            await self.captcha()
+            return await self.api.call("join", {"room": room, "pass": self.pass_token or ""})
 
     async def leave(self, quiet: bool = False) -> None:
         if not self.joined:
@@ -276,7 +299,7 @@ class Session:
     async def _rejoin(self) -> None:
         """Silent re-join with the same keys after the token expired."""
         try:
-            res = await self.api.call("join", {"room": self.room})
+            res = await self._join_call(self.room)
             self.token, self.cursor = res["token"], res["cursor"]
             self._mark_online()
             self.log("warn", T.MISSED)

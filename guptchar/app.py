@@ -19,6 +19,7 @@ from . import texts as T
 from .commands import run_line
 from .config import MIN_COLS, MIN_ROWS, SERVER_URL
 from .payload import safe_text
+from .api import ApiError
 from .session import Entry, Session
 
 WHITE, RED, ORANGE, DIM, GREY = "#ffffff", "#ff2b3f", "#ff8a1f", "#6e6e6e", "#bdbdbd"
@@ -48,6 +49,11 @@ Input:focus {{ border: none; }}
 Input > .input--placeholder {{ color: #3a3a3a; }}
 Input > .input--cursor {{ background: {RED}; color: #000000; }}
 #too-small {{ width: 100%; height: 100%; content-align: center middle; color: {ORANGE}; }}
+CaptchaScreen {{ align: center middle; }}
+CaptchaScreen Static {{ width: auto; height: auto; margin: 0 0 1 0; }}
+#cap-art {{ border: solid #2a2a2a; padding: 0 1; }}
+#cap-status {{ color: {ORANGE}; }}
+#cap-input {{ width: 20; border: tall {RED}; }}
 """
 
 
@@ -182,7 +188,59 @@ class BootScreen(SizedScreen):
         await until(5000)
         while getattr(self.app, "_too_small", False):
             await asyncio.sleep(0.2)
-        self.app.switch_screen(ChatScreen())
+        needs_captcha = getattr(self.app, "require_captcha", True)
+        self.app.switch_screen(CaptchaScreen() if needs_captcha else ChatScreen())
+
+
+class CaptchaScreen(SizedScreen):
+    """ASCII captcha (DECISIONS D32). At startup it leads to the chat; when the
+    relay asks again mid-chat it is pushed on top and resolves `done`."""
+
+    def __init__(self, done: asyncio.Future | None = None):
+        super().__init__()
+        self.done = done
+        self.challenge: str | None = None
+
+    def compose(self) -> ComposeResult:
+        yield Static(Text(" GUPTCHAR ", style=f"bold {WHITE} on {RED}"), id="cap-brand")
+        yield Static(T.CAPTCHA_TITLE, id="cap-title")
+        yield Static(id="cap-art")
+        yield Static(id="cap-status")
+        yield Input(id="cap-input", placeholder="answer", max_length=8)
+
+    def on_mount(self) -> None:
+        self.run_worker(self.load(), exclusive=True)
+
+    async def load(self, message: str = "") -> None:
+        status = self.query_one("#cap-status", Static)
+        status.update(message)
+        try:
+            c = await self.app.session.new_captcha()  # type: ignore[attr-defined]
+        except ApiError:
+            status.update(T.OFFLINE)
+            await asyncio.sleep(3)
+            self.run_worker(self.load(T.OFFLINE), exclusive=True)
+            return
+        self.challenge = c["challenge"]
+        self.query_one("#cap-art", Static).update(Text("\n".join(c["art"]), style=WHITE))
+        self.query_one("#cap-input", Input).focus()
+
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
+        event.stop()
+        value, event.input.value = event.value, ""
+        if not self.challenge or not value.strip():
+            return
+        challenge, self.challenge = self.challenge, None
+        try:
+            await self.app.session.solve_captcha(challenge, value)  # type: ignore[attr-defined]
+        except ApiError as exc:
+            self.run_worker(self.load(T.OFFLINE if exc.code == "network" else T.CAPTCHA_WRONG), exclusive=True)
+            return
+        if self.done is not None:
+            self.app.pop_screen()
+            self.done.set_result(None)
+        else:
+            self.app.switch_screen(ChatScreen())
 
 
 class ChatScreen(SizedScreen):
@@ -280,8 +338,9 @@ class GuptcharApp(App):
     TITLE = "Guptchar"
     ENABLE_COMMAND_PALETTE = False
 
-    def __init__(self, server_url: str = SERVER_URL):
+    def __init__(self, server_url: str = SERVER_URL, require_captcha: bool = True):
         super().__init__()
+        self.require_captcha = require_captcha  # False only in offline UI tests
         self.entries: list[Entry] = []
         self.chat: ChatScreen | None = None
         self.pending: asyncio.Future | None = None
@@ -294,8 +353,14 @@ class GuptcharApp(App):
             on_status=self._on_status,
             confirm=self.confirm,
             beep=self.bell,
+            captcha=self.ask_captcha,
         )
         self.ui = Ui(self)
+
+    async def ask_captcha(self) -> None:
+        done = asyncio.get_running_loop().create_future()
+        await self.push_screen(CaptchaScreen(done))
+        await done
 
     async def on_mount(self) -> None:
         await self.push_screen(BootScreen())

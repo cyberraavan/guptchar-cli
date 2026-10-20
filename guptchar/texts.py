@@ -12,6 +12,9 @@ OFFLINE = "Can't reach the relay. Retrying…"
 MISSED = "Some messages expired while you were away."
 UNSUPPORTED_CONFIRM = "Metadata can't be removed from this file type. Send anyway?"
 RELAY_BUSY = "Relay is busy right now. Try again in a minute."
+CAPTCHA_TITLE = "Prove you're human — type the 5 characters below."
+CAPTCHA_WRONG = "Wrong answer — here is a new one."
+CAPTCHA_REQUIRED = "Please solve the captcha again."
 WEAK_KEY = "Key too weak — use 4+ random words or 12+ mixed characters (letters, numbers, symbols)."
 EXECUTABLE = "Executable file — only open it if you trust the sender."
 AUTO_SAVE_LIMIT = "Auto-save limit reached (50 files / 100 MB this run) — file skipped."
@@ -99,6 +102,8 @@ API_ERRORS = {
     "too_large": TOO_LARGE,
     "storage_full": STORAGE_FULL,
     "relay_busy": RELAY_BUSY,
+    "captcha_required": CAPTCHA_REQUIRED,
+    "captcha_failed": CAPTCHA_WRONG,
     "file_gone": FILE_EXPIRED,
     "network": OFFLINE,
 }

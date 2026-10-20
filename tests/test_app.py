@@ -14,7 +14,7 @@ def log_text(app: GuptcharApp) -> str:
 
 class AppTest(unittest.IsolatedAsyncioTestCase):
     async def test_boot_then_commands(self):
-        app = GuptcharApp(server_url="http://127.0.0.1:9")  # nothing listens there
+        app = GuptcharApp(server_url="http://127.0.0.1:9", require_captcha=False)  # nothing listens there
         async with app.run_test(size=(120, 40)) as pilot:
             self.assertIsInstance(app.screen, BootScreen)
             await pilot.pause(4.0)
@@ -57,7 +57,7 @@ class AppTest(unittest.IsolatedAsyncioTestCase):
             self.assertIn(T.OFFLINE, log_text(app))  # relay unreachable -> friendly error
 
     async def test_too_small_terminal(self):
-        app = GuptcharApp(server_url="http://127.0.0.1:9")
+        app = GuptcharApp(server_url="http://127.0.0.1:9", require_captcha=False)
         async with app.run_test(size=(50, 15)) as pilot:
             await pilot.pause(0.2)
             self.assertIsInstance(app.screen, TooSmallScreen)
