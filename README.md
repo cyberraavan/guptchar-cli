@@ -5,7 +5,7 @@ End-to-end encrypted, zero-storage group chat — in your terminal.
 - Messages and files are encrypted **on your machine** (Argon2id + AES-256-GCM, up to 3 key layers). The relay only ever sees sealed envelopes.
 - No accounts, no database, no history. The relay forgets everything after 60 seconds.
 - File metadata (photo GPS/camera, PDF author, Office author/comment names) is removed before encryption.
-- Talks to the same rooms as the Guptchar web app.
+- Connects to the public relay at **https://guptchar.craavan.in** (built in, nothing to configure) — same rooms as the web app on that site.
 
 ```
 [ 0.00] GUPTCHAR v2.0 — booting
